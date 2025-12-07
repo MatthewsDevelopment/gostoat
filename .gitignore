@@ -1,0 +1,8 @@
+.vscode/
+test/
+.env
+*.log
+*.zip
+*.rar
+*.tar.gz
+*.jar
