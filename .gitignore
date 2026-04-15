@@ -1,5 +1,10 @@
 .vscode/
 test/
+.idea/
+examples/
+go.work
+go.work.sum
+test.yaml
 .env
 *.log
 *.zip

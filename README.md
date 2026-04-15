@@ -4,7 +4,7 @@ gostoat is an API wrapper that allows you to create stoat.chat bots as well as u
 
 If you need help with using the gostoat package, join the [gstoat stoat.chat server](https://stt.gg/xHhH0zv7). 
 
-**NOTICE**: This library is still a heavy work in progress.
+**NOTICE**: This library is still a heavy work in progress. Expect unfinished and buggy features.
 
 This Go package is not officially endorsed by or affiliated with stoat.chat
 
@@ -18,10 +18,15 @@ Install gostoat by using the following command.
 go get github.com/MatthewsDevelopment/gostoat
 ```
 
-After installing the package, import the gostoat package using this.
+After installing the package, import the gofluxer package using this within your code.
 
 ```go
-import "github.com/MatthewsDevelopment/gostoat"
+import (
+	"log"
+	"strings"
+	"fmt"
+	"github.com/MatthewsDevelopment/gostoat"
+)
 ```
 
 Here is a basic example of a ping pong bot.
