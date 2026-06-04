@@ -22,19 +22,19 @@ func ExecuteWebhook(apiBaseURL, webhookID, webhookToken string, payload WebhookP
 	}
 
 	if payload.Content == nil && len(payload.Embeds) == 0 {
-		return fmt.Errorf("[gostoat] webhook payload must contain at least 'content' or 'embeds'")
+		return fmt.Errorf("[gostoat]: webhook payload must contain at least 'content' or 'embeds'")
 	}
 
 	url := fmt.Sprintf("%s/webhooks/%s/%s", apiBaseURL, webhookID, webhookToken)
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("[gostoat] marshal webhook payload failed: %w", err)
+		return fmt.Errorf("[gostoat]: marshal webhook payload failed: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
-		return fmt.Errorf("[gostoat] request failed: %w", err)
+		return fmt.Errorf("[gostoat]: Something went wrong with the request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -42,13 +42,13 @@ func ExecuteWebhook(apiBaseURL, webhookID, webhookToken string, payload WebhookP
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("[gostoat] webhook request failed: %w", err)
+		return fmt.Errorf("[gostoat]: Something went wrong with the webhook request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("[gostoat] webhook execution failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("[gostoat]:Something went wrong with the webhook execution. Returned with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	return nil

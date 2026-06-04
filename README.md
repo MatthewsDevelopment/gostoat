@@ -2,7 +2,7 @@
 
 gostoat is an API wrapper that allows you to create stoat.chat bots as well as use stoat webhooks
 
-If you need help with using the gostoat package, join the [gstoat stoat.chat server](https://stt.gg/xHhH0zv7). 
+If you need help with using the gostoat package, join the [gostoat stoat.chat server](https://stt.gg/xHhH0zv7). 
 
 **NOTICE**: This library is still a heavy work in progress. Expect unfinished and buggy features.
 
@@ -68,6 +68,11 @@ func handlePingResponse(c *stoat.Client, m stoat.Message) {
 You can refer to the examples directory for more examples to see how to use this Go package
 
 # gostoat Update Notes:
+
+### Version 0.0.2 - June 4th, 2026
+
+- Installing gostoat will now include github.com/gorilla/websocket v1.5.3 within the go.mod file which is required to use this package.
+- Improved the logging text.
 
 ### Version 0.0.1 - December 7th, 2025
 

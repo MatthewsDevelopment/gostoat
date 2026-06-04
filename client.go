@@ -30,7 +30,6 @@ type Client struct {
 	APIBaseURL string
 	CDNBaseURL string
 	WSBaseURL  string
-
 	Token     string
 	TokenType string
 	Prefix string
@@ -51,7 +50,7 @@ func NewClient(token string) *Client {
 		WSBaseURL:  DefaultWSBaseURL,
 		Token:      token,
 		TokenType:  BotTokenType,
-		Prefix:     "!", // Default prefix for command handler
+		Prefix:     "!", // The default prefix for the command handler is none was provided
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 		CommandHandlers: make(map[string]func(c *Client, cmd Command)),
 	}
@@ -65,7 +64,7 @@ func (c *Client) SetBaseURLs(api, cdn, ws string) {
 
 func (c *Client) SetAuthType(tokenType string) error {
 	if tokenType != BotTokenType && tokenType != SessionTokenType {
-		return fmt.Errorf("[gostoat] invalid token type: %s. Must be '%s' or '%s'", tokenType, BotTokenType, SessionTokenType)
+		return fmt.Errorf("[gostoat]: invalid token type: %s. Must be '%s' or '%s'", tokenType, BotTokenType, SessionTokenType)
 	}
 	c.TokenType = tokenType
 	return nil
@@ -74,19 +73,18 @@ func (c *Client) SetCommandPrefix(prefix string) {
 	c.Prefix = prefix
 }
 
-// --- Helper Functions ---
 func Ptr[T any](v T) *T {
 	return &v
 }
 
 func checkResponseStatus(resp *http.Response) error {
 	if resp.StatusCode == http.StatusTooManyRequests {
-		log.Fatalf("[gostoat] FATAL ERROR: API returned a status 429 rate limit. Stopping process.")
-		return fmt.Errorf("[gostoat] API returned a status 429 rate limit. Stopping process.")
+		log.Fatalf("[gostoat]: FATAL ERROR: API returned a status 429 rate limit. Stopping process.")
+		return fmt.Errorf("[gostoat]: API returned a status 429 rate limit. Stopping process.")
 	}
 	if resp.StatusCode >= 400 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("[gostoat] API request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("[gostoat]: API request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 	return nil
 }
@@ -94,7 +92,7 @@ func checkResponseStatus(resp *http.Response) error {
 func (c *Client) performAPICall(method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, fmt.Errorf("[gostoat] request failed: %w", err)
+		return nil, fmt.Errorf("[gostoat]: request failed: %w", err)
 	}
 
 	authHeader := "X-Bot-Token"
@@ -109,7 +107,7 @@ func (c *Client) performAPICall(method, url string, body io.Reader) (*http.Respo
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("[gostoat] failed to execute request: %w", err)
+		return nil, fmt.Errorf("[gostoat]: failed to execute request: %w", err)
 	}
 
 	if err := checkResponseStatus(resp); err != nil {
@@ -121,14 +119,14 @@ func (c *Client) performAPICall(method, url string, body io.Reader) (*http.Respo
 }
 
 
-// --- WebSocket and Event Loop ---
+
 func (c *Client) ConnectAndRun() error {
-	log.Println("Connecting to WebSocket...")
+	log.Println("[gostoat]: Connecting to WebSocket...")
 	wsURL := c.WSBaseURL
 	
 	u, err := url.Parse(wsURL)
 	if err != nil {
-		return fmt.Errorf("[gostoat] Invalid websocket URL: %w", err)
+		return fmt.Errorf("[gostoat]: Invalid websocket URL: %w", err)
 	}
 
 	headers := make(http.Header)
@@ -141,14 +139,13 @@ func (c *Client) ConnectAndRun() error {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
 	if err != nil {
-		return fmt.Errorf("[gostoat] Websocket connection failed: %w", err)
+		return fmt.Errorf("[gostoat]: Websocket connection failed: %w", err)
 	}
 	c.Conn = conn
 	defer c.Conn.Close()
-	log.Println("[gostoat] WebSocket connected.")
-
+	log.Println("[gostoat]: WebSocket connected.")
 	if err := c.sendAuthenticate(); err != nil {
-		return fmt.Errorf("[gostoat] authentication payload failed: %w", err)
+		return fmt.Errorf("[gostoat]: authentication payload failed: %w", err)
 	}
 
 	go c.pingLoop()
@@ -157,7 +154,7 @@ func (c *Client) ConnectAndRun() error {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[gostoat] WebSocket error: %v", err)
+				log.Printf("[gostoat]: WebSocket error: %v", err)
 			}
 			return err
 		}
@@ -181,7 +178,7 @@ func (c *Client) sendAuthenticate() error {
 		return err
 	}
 	
-	log.Println("Sending Authenticate payload...")
+	log.Println("[gostoat]: Sending Authenticate payload...")
 	return c.Conn.WriteMessage(websocket.TextMessage, data)
 }
 
@@ -200,11 +197,11 @@ func (c *Client) pingLoop() {
 		}
 		data, err := json.Marshal(pingPayload)
 		if err != nil {
-			log.Printf("[gostoat] Error marshaling ping payload: %v", err)
+			log.Printf("[gostoat]: Error marshaling ping payload: %v", err)
 			continue
 		}
 		if err := c.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			log.Printf("[gostoat] Error sending ping: %v", err)
+			log.Printf("[gostoat]: Something went wrong while sending ping: %v", err)
 			return
 		}
 	}
@@ -220,7 +217,7 @@ func (c *Client) FetchBotUser() (string, error) {
 
 	var user User
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return "", fmt.Errorf("[gostoat] failed to decode user response: %w", err)
+		return "", fmt.Errorf("[gostoat]: failed to decode user response: %w", err)
 	}
 
 	return user.ID, nil
@@ -236,10 +233,10 @@ func (c *Client) GetBotOwnerID() (string, error) {
 
 	var user User
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return "", fmt.Errorf("[gostoat] failed to decode user response for owner ID: %w", err)
+		return "", fmt.Errorf("[gostoat]: failed to decode user response for owner ID: %w", err)
 	}
 	if user.Bot == nil || user.Bot.Owner == "" {
-		return "", fmt.Errorf("[gostoat] Failed to retrieve bot owner ID. Most likely caused by using a user bot.")
+		return "", fmt.Errorf("[gostoat]: Something went wrong while trying to retrieve bot owner ID. Most likely caused by using a user bot.")
 	}
 
 	return user.Bot.Owner, nil
@@ -255,7 +252,7 @@ func (c *Client) GetChannel(channelID string) (*Channel, error) {
 
 	var channel Channel
 	if err := json.NewDecoder(resp.Body).Decode(&channel); err != nil {
-		return nil, fmt.Errorf("[gostoat] failed to decode channel response: %w", err)
+		return nil, fmt.Errorf("[gostoat]: failed to decode channel response: %w", err)
 	}
 
 	return &channel, nil
@@ -270,48 +267,47 @@ func (c *Client) IsChannelNSFW(channelID string) (bool, error) {
 }
 
 func (c *Client) handleEvent(rawMessage []byte) {
-	// log.Printf("[gostoat] DEBUG: Received raw WS message: %s", string(rawMessage))
+	// log.Printf("[gostoat]: DEBUG: Received raw WS message: %s", string(rawMessage))
 
 	var typeOnly struct {
 		Type string `json:"type"`
 	}
 	if err := json.Unmarshal(rawMessage, &typeOnly); err != nil {
-		log.Printf("[gostoat] Failed to unmarshal event type: %v. Raw message size: %d", err, len(rawMessage))
+		log.Printf("[gostoat]: Failed to unmarshal event type: %v. Raw message size: %d", err, len(rawMessage))
 		return
 	}
 	
 	eventType := typeOnly.Type
 	switch eventType {
 	case "Authenticated":
-		log.Println("[gostoat] ✅ Successfully connected to stoat.chat. Bot is Ready!")
+		log.Println("[gostoat]: ✅ Successfully connected to stoat.chat. Bot is Ready!")
 
 		userID, err := c.FetchBotUser()
 		if err != nil {
-			log.Printf("[gostoat] Failed to fetch bot user ID: %v", err)
+			log.Printf("[gostoat]: Failed to fetch bot user ID: %v", err)
 			return
 		}
 		c.UserID = userID
-		log.Printf("[gostoat] Bot User ID successfully fetched: %s", c.UserID)
+		log.Printf("[gostoat]: Bot User ID successfully fetched: %s", c.UserID)
 
 	case "Pong":
-		// Server response to our Ping heartbeat. This is expected and normal.
+		// Server response to the Ping heartbeat.
 	case "Ping":
-		// Server is pinging us, we must respond with a Pong immediately.
 		c.sendPong()
 	case "Message":
-		log.Println("[gostoat] DEBUG: Reached Message handler switch case.")
+		log.Println("[gostoat]: DEBUG: Reached Message handler switch case.")
 		var msg Message
 		if err := json.Unmarshal(rawMessage, &msg); err != nil {
 			log.Printf("Error unmarshaling Message data: %v", err)
 			return
 		}
-		log.Printf("[gostoat] Received Message event from %s in channel %s: %s", msg.AuthorID, msg.ChannelID, msg.Content)
+		log.Printf("[gostoat]: Received Message event from %s in channel %s: %s", msg.AuthorID, msg.ChannelID, msg.Content)
 		c.handleMessage(msg)
 	case "ChannelStartTyping", "ChannelStopTyping":
 		// Explicitly handling typing events to avoid "unhandled event type" spam.
-		log.Printf("[gostoat] DEBUG: Typing event received: %s", eventType)
+		log.Printf("[gostoat]: DEBUG: Typing event received: %s", eventType)
 	default:
-		log.Printf("[gostoat] DEBUG: Received unhandled event type: %s", eventType)
+		log.Printf("[gostoat]: DEBUG: Received unhandled event type: %s", eventType)
 	}
 }
 
@@ -328,25 +324,22 @@ func (c *Client) sendPong() error {
 	return c.Conn.WriteMessage(websocket.TextMessage, data)
 }
 
-// handleMessage processes a MessageCreate event.
 func (c *Client) handleMessage(m Message) {
 	if c.UserID != "" && m.AuthorID == c.UserID {
 		return
 	}
-
 	for _, handler := range c.OnMessageHandlers {
 		handler(c, m)
 	}
 
 	trimmedContent := strings.TrimSpace(m.Content)
-
 	if strings.HasPrefix(trimmedContent, c.Prefix) {
 		cmd := c.parseCommand(m)
 		if handler, ok := c.CommandHandlers[cmd.Name]; ok {
 			handler(c, cmd)
 		} else {
-			// Log for if a command is recognized but there is no handler registered. Off for official release.
-			// log.Printf("Unknown command: !%s", cmd.Name)
+			// This is a test debug log for if a command is recognized but a handler does not exist for it. For the official releases, this is disabled.
+			// log.Printf("[gostoat]: Unknown command: !%s", cmd.Name)
 		}
 	}
 }
@@ -379,7 +372,8 @@ func (c *Client) parseCommand(m Message) Command {
 	return cmd
 }
 
-// --- Handler Registration ---
+
+
 func (c *Client) OnMessage(handler func(c *Client, m Message)) {
 	c.OnMessageHandlers = append(c.OnMessageHandlers, handler)
 }
@@ -388,7 +382,7 @@ func (c *Client) OnCommand(name string, handler func(c *Client, cmd Command)) {
 }
 
 
-// --- API Payloads and Structs ---
+
 type Masquerade struct {
 	Name   *string `json:"name,omitempty"`
 	Avatar *string `json:"avatar,omitempty"`
@@ -411,13 +405,13 @@ type SendMessagePayload struct {
 
 func (c *Client) SendMessage(channelID string, payload SendMessagePayload) error {
 	if payload.Content == nil && len(payload.Embeds) == 0 && payload.Masquerade == nil {
-		return fmt.Errorf("[gostoat] message payload must contain 'content' or 'embeds''")
+		return fmt.Errorf("[gostoat]: message payload must contain 'content' or 'embeds''")
 	}
 
 	url := fmt.Sprintf("%s/channels/%s/messages", c.APIBaseURL, channelID)
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("[gostoat] marshal message payload failed: %w", err)
+		return fmt.Errorf("[gostoat]: marshal message payload failed: %w", err)
 	}
 
 	resp, err := c.performAPICall("POST", url, bytes.NewBuffer(data))
@@ -428,7 +422,7 @@ func (c *Client) SendMessage(channelID string, payload SendMessagePayload) error
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("[gostoat] request failed with unexpected status %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("[gostoat]: Something went wrong with an unexpected status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	return nil
@@ -444,13 +438,14 @@ func (c *Client) GetMessage(channelID, messageID string) (*Message, error) {
 
 	var message Message
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		return nil, fmt.Errorf("[gostoat] failed to decode message response: %w", err)
+		return nil, fmt.Errorf("[gostoat]: failed to decode message response: %w", err)
 	}
 
 	return &message, nil
 }
 
-// --- Event Structures ---
+
+
 type Message struct {
 	ID        string `json:"_id"`
 	ChannelID string `json:"channel"`
